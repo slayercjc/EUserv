@@ -115,6 +115,13 @@ def run():
             try:
                 control(page, 'Contracts').wait_for(state='visible')
             except BrowserTimeout:
+                body = page.locator('body').inner_text()
+                if re.search(r'finish the login process.*captcha|solve the following captcha', body, re.I | re.S):
+                    raise StopRenewal('EUserv 登录要求额外图形验证码（CAPTCHA）；尚未进入合同页。当前版本不支持自动识别该验证码。') from None
+                if re.search(r'authenticator app|two.factor|two.step', body, re.I):
+                    raise StopRenewal('EUserv 登录要求身份验证器二次验证；这不是续期邮件 PIN，当前未配置。') from None
+                if re.search(r'incorrect|invalid password|login failed|wrong password', body, re.I):
+                    raise StopRenewal('网站返回登录错误，请检查 EUserv 用户名和密码 Secret。') from None
                 raise StopRenewal('登录未完成：请检查凭据，或网站是否要求图形验证码/额外登录验证。') from None
             unique(control(page, 'Contracts'), 'Contracts 入口').click()
             report('阶段：查找指定合同。')
