@@ -85,7 +85,9 @@ def run():
         try:
             page = browser.new_page(locale='en-US')
             page.set_default_timeout(30000)
+            report('阶段：打开 EUserv 登录页。')
             page.goto(URL, wait_until='domcontentloaded')
+            report('阶段：登录页已加载，识别登录表单。')
             form = page.locator('form[name="step1_anmeldung"]')
             unique(form, '登录表单')
             language = form.locator('select[name="form_selected_language"]')
@@ -94,12 +96,15 @@ def run():
                     language.select_option(value='en')
             form.locator('input[name="email"]').fill(username)
             form.locator('input[name="password"]').fill(password)
+            report('阶段：提交登录表单。')
             form.locator('input[type="submit"]').click()
+            report('阶段：等待登录结果。')
             try:
                 control(page, 'Contracts').wait_for(state='visible')
             except BrowserTimeout:
                 raise StopRenewal('登录未完成：请检查凭据，或网站是否要求图形验证码/额外登录验证。') from None
             unique(control(page, 'Contracts'), 'Contracts 入口').click()
+            report('阶段：查找指定合同。')
             row = contract_row(page, contract)
             extend = control(row, 'Extend contract')
             if extend.count() == 0:
@@ -110,6 +115,7 @@ def run():
                     return
                 raise StopRenewal('指定合同没有续期按钮，也无法确认未来可续期日期；需要检查页面。')
             unique(extend, '续期入口').click()
+            report('阶段：检查保留原套餐弹窗。')
             page.get_by_text('Keep existing contract', exact=True).wait_for(state='visible')
             offer = offer_container(page)
             # Read current actual contract end; the modal only shows a proposed new date.
