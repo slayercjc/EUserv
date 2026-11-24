@@ -92,9 +92,12 @@ def run():
             unique(form, '登录表单')
             language = form.locator('select[name="form_selected_language"]')
             if language.count() and language.input_value() != 'en':
+                report('阶段：切换登录页面语言为英语。')
                 with page.expect_navigation(wait_until='domcontentloaded'):
                     language.select_option(value='en')
+            report('阶段：填写登录账号。')
             form.locator('input[name="email"]').fill(username)
+            report('阶段：填写登录密码。')
             form.locator('input[name="password"]').fill(password)
             report('阶段：提交登录表单。')
             form.locator('input[type="submit"]').click()
