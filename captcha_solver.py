@@ -33,7 +33,14 @@ def solve_login_captcha(page):
     report('阶段：已识别验证码图片和输入框，进行离线 OCR。')
     ocr = ddddocr.DdddOcr(show_ad=False)
     result = ocr.classification(image_bytes)
-    answer = arithmetic_answer(result)
+    try:
+        answer = arithmetic_answer(result)
+    except StopRenewal:
+        ocr.set_ranges('0123456789+-x/=')
+        probabilities = ocr.classification(image_bytes, probability=True)
+        constrained = ''.join(probabilities['charsets'][max(range(len(row)), key=row.__getitem__)]
+                              for row in probabilities['probability'])
+        answer = arithmetic_answer(constrained)
     button = page.locator('input[type="submit"]:visible').or_(page.get_by_role('button', name='Login', exact=True))
     if button.count() != 1:
         raise StopRenewal('无法唯一识别验证码提交按钮；未提交。')
