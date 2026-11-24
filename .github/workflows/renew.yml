@@ -1,5 +1,8 @@
 name: EUserv free renewal
 on:
+  push:
+    branches: [main]
+    paths: ['*.py', 'tests/**', 'requirements.txt', '.github/workflows/renew.yml']
   schedule:
     - cron: '23 1 * * *'
   workflow_dispatch:
@@ -15,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   renew:
-    if: github.event_name == 'workflow_dispatch' || vars.RENEW_ENABLED == 'true'
+    if: github.event_name != 'schedule' || vars.RENEW_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -35,4 +38,4 @@ jobs:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           EUSERV_PIN_SENDER: ${{ secrets.EUSERV_PIN_SENDER }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+          DRY_RUN: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run)) && 'true' || 'false' }}
