@@ -90,6 +90,11 @@ def run():
             report('阶段：登录页已加载，识别登录表单。')
             form = page.locator('form[name="step1_anmeldung"]')
             unique(form, '登录表单')
+            for field in form.locator('input').all():
+                kind = field.get_attribute('type') or 'text'
+                if kind != 'hidden':
+                    report('登录输入框诊断：type=' + kind + ', name=' + (field.get_attribute('name') or '(none)')
+                           + ', visible=' + str(field.is_visible()) + ', editable=' + str(field.is_editable()))
             language = form.locator('select[name="form_selected_language"]')
             if language.count() and language.input_value() != 'en':
                 report('阶段：切换登录页面语言为英语。')
