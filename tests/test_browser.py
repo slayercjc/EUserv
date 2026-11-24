@@ -2,7 +2,7 @@ import unittest
 import os
 from playwright.sync_api import sync_playwright
 from renewal_core import StopRenewal
-from renew import offer_container, contract_row, control, expiry
+from renew import offer_container, contract_row, control, expiry, login_controls
 
 
 class PageTests(unittest.TestCase):
@@ -21,6 +21,19 @@ class PageTests(unittest.TestCase):
 
     def tearDown(self):
         self.page.close()
+
+    def test_legacy_form_controls_outside_form(self):
+        self.page.set_content('''<table><form name="step1_anmeldung"><tr>
+        <td><input name="email" type="text"></td>
+        <td><input name="password" type="password"></td>
+        <td><input name="Submit" type="submit" value="Login"></td>
+        </tr></form></table>''')
+        self.assertEqual(self.page.locator('form input').count(), 0)
+        account, password, button = login_controls(self.page)
+        account.fill('test-account')
+        password.fill('test-password')
+        self.assertEqual(account.input_value(), 'test-account')
+        self.assertEqual(button.count(), 1)
 
     def test_free_offer_isolated_from_paid_options(self):
         self.page.set_content('''<div><h3>Keep existing contract</h3>

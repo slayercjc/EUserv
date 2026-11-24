@@ -29,6 +29,15 @@ def control(scope, name):
         scope.get_by_role('link', name=name, exact=True)).filter(visible=True)
 
 
+def login_controls(page):
+    # Legacy table markup leaves the actual inputs outside the form element.
+    return (
+        unique(page.locator('input[name="email"]:visible'), '可见登录账号输入框'),
+        unique(page.locator('input[name="password"][type="password"]:visible'), '可见登录密码输入框'),
+        unique(page.locator('input[name="Submit"][type="submit"]:visible'), '可见登录按钮'),
+    )
+
+
 def contract_row(page, contract):
     cell = page.get_by_role('cell', name=contract, exact=True)
     row = page.get_by_role('row').filter(has=cell).filter(visible=True)
@@ -90,22 +99,18 @@ def run():
             report('阶段：登录页已加载，识别登录表单。')
             form = page.locator('form[name="step1_anmeldung"]')
             unique(form, '登录表单')
-            for field in form.locator('input').all():
-                kind = field.get_attribute('type') or 'text'
-                if kind != 'hidden':
-                    report('登录输入框诊断：type=' + kind + ', name=' + (field.get_attribute('name') or '(none)')
-                           + ', visible=' + str(field.is_visible()) + ', editable=' + str(field.is_editable()))
-            language = form.locator('select[name="form_selected_language"]')
+            language = page.locator('select[name="form_selected_language"]:visible')
             if language.count() and language.input_value() != 'en':
                 report('阶段：切换登录页面语言为英语。')
                 with page.expect_navigation(wait_until='domcontentloaded'):
                     language.select_option(value='en')
             report('阶段：填写登录账号。')
-            form.locator('input[name="email"]').fill(username)
+            account_input, password_input, login_button = login_controls(page)
+            account_input.fill(username)
             report('阶段：填写登录密码。')
-            form.locator('input[name="password"]').fill(password)
+            password_input.fill(password)
             report('阶段：提交登录表单。')
-            form.locator('input[type="submit"]').click()
+            login_button.click()
             report('阶段：等待登录结果。')
             try:
                 control(page, 'Contracts').wait_for(state='visible')
