@@ -1,0 +1,38 @@
+name: EUserv free renewal
+on:
+  schedule:
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '只检查免费套餐，不请求 PIN 或提交续期'
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: euserv-renew
+  cancel-in-progress: false
+jobs:
+  renew:
+    if: github.event_name == 'workflow_dispatch' || vars.RENEW_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: python -m unittest discover -s tests -v
+      - name: Check or renew free contract
+        run: python renew.py
+        env:
+          EUSERV_USERNAME: ${{ secrets.EUSERV_USERNAME }}
+          EUSERV_PASSWORD: ${{ secrets.EUSERV_PASSWORD }}
+          EUSERV_CONTRACT_ID: ${{ secrets.EUSERV_CONTRACT_ID }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EUSERV_PIN_SENDER: ${{ secrets.EUSERV_PIN_SENDER }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
