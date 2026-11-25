@@ -144,10 +144,15 @@ def run():
             extend = control(row, 'Extend contract')
             if extend.count() == 0:
                 # A missing button alone must never be treated as success.
-                text = row.inner_text()
+                text = row.inner_text() + '\n' + row.evaluate('''element =>
+                    Array.from(element.querySelectorAll('*')).flatMap(node =>
+                    ['title','data-bs-original-title','data-original-title','data-bs-content','data-content']
+                    .map(name => node.getAttribute(name) || '')).join('\\n')''')
                 if 'Contract extension possible from' in text and parse_date(text.split('Contract extension possible from', 1)[1]) > date.today():
-                    report('尚未到可续期日期，本次无需续期。')
+                    report('尚未到可续期日期：' + str(parse_date(text.split('Contract extension possible from', 1)[1])) + '，本次无需续期。')
                     return
+                report('合同状态诊断：日期=' + ','.join(re.findall(r'\b\d{4}-\d{2}-\d{2}\b|\b\d{2}\.\d{2}\.\d{4}\b', text))
+                       + '，按钮数=' + str(row.locator('button,input[type=submit],a').count()))
                 raise StopRenewal('指定合同没有续期按钮，也无法确认未来可续期日期；需要检查页面。')
             unique(extend, '续期入口').click()
             report('阶段：检查保留原套餐弹窗。')
