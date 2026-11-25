@@ -33,9 +33,17 @@ jobs:
         run: python renew.py
         env:
           EUSERV_USERNAME: ${{ secrets.EUSERV_USERNAME }}
+          CAPTCHA_DIAGNOSTIC: ${{ github.event_name == 'push' && 'true' || 'false' }}
           EUSERV_PASSWORD: ${{ secrets.EUSERV_PASSWORD }}
           EUSERV_CONTRACT_ID: ${{ secrets.EUSERV_CONTRACT_ID }}
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           EUSERV_PIN_SENDER: ${{ secrets.EUSERV_PIN_SENDER }}
           DRY_RUN: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run)) && 'true' || 'false' }}
+      - uses: actions/upload-artifact@v4
+        if: failure() && github.event_name == 'push'
+        with:
+          name: captcha-diagnostic
+          path: captcha-diagnostic.png
+          retention-days: 1
+          if-no-files-found: ignore

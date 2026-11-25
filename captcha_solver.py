@@ -1,5 +1,7 @@
 """Offline OCR for one login challenge; never upload images or log answers."""
 import re
+import os
+from pathlib import Path
 from renewal_core import StopRenewal, report
 
 
@@ -30,6 +32,9 @@ def solve_login_captcha(page):
         raise StopRenewal('验证码图片或 captcha_code 输入框结构不匹配；未提交。')
     # Screenshot only this image. Fetching its URL again could generate a different challenge.
     image_bytes = image.screenshot()
+    if os.environ.get('CAPTCHA_DIAGNOSTIC') == 'true':
+        Path('captcha-diagnostic.png').write_bytes(image_bytes)
+        raise StopRenewal('已保存验证码局部诊断图片；此次不识别、不提交验证码。')
     report('阶段：已识别验证码图片和输入框，进行离线 OCR。')
     ocr = ddddocr.DdddOcr(show_ad=False)
     result = ocr.classification(image_bytes)
