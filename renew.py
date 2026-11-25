@@ -42,6 +42,9 @@ def contract_row(page, contract):
     # Older layout tables may not expose ARIA cell/row roles.
     cell = page.locator('td').filter(has_text=re.compile(r'^\s*' + re.escape(contract) + r'\s*$'))
     row = cell.locator('xpath=ancestor::tr[1]').filter(visible=True)
+    server_tab = page.get_by_text('vServer', exact=True).filter(visible=True)
+    if row.count() == 0 and server_tab.count() == 1:
+        server_tab.click()
     from playwright.sync_api import TimeoutError as BrowserTimeout
     try:
         row.first.wait_for(state='visible', timeout=15000)
