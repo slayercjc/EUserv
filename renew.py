@@ -39,8 +39,16 @@ def login_controls(page):
 
 
 def contract_row(page, contract):
-    cell = page.get_by_role('cell', name=contract, exact=True)
-    row = page.get_by_role('row').filter(has=cell).filter(visible=True)
+    # Older layout tables may not expose ARIA cell/row roles.
+    cell = page.locator('td').filter(has_text=re.compile(r'^\s*' + re.escape(contract) + r'\s*$'))
+    row = page.locator('tr').filter(has=cell).filter(visible=True)
+    from playwright.sync_api import TimeoutError as BrowserTimeout
+    try:
+        row.first.wait_for(state='visible', timeout=15000)
+    except BrowserTimeout:
+        report('合同定位诊断：可见表格行数=' + str(page.locator('tr:visible').count())
+               + '，匹配合同单元格数=' + str(cell.count())
+               + '，精确合同文本数=' + str(page.get_by_text(contract, exact=True).count()))
     return unique(row, '指定合同列表行')
 
 
