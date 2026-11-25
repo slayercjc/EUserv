@@ -39,8 +39,9 @@ def login_controls(page):
 
 
 def contract_row(page, contract):
-    # Older layout tables may not expose ARIA cell/row roles.
-    cell = page.locator('td').filter(has_text=re.compile(r'^\s*' + re.escape(contract) + r'\s*$'))
+    # Ignore hidden duplicate tables and nested layout cells.
+    cell = page.locator('td').filter(has_not=page.locator('td')).filter(
+        has_text=re.compile(r'^\s*' + re.escape(contract) + r'(?!\d)'))
     row = cell.locator('xpath=ancestor::tr[1]').filter(visible=True)
     server_tab = page.get_by_text('vServer', exact=True).filter(visible=True)
     if row.count() == 0 and server_tab.count() == 1:
@@ -49,17 +50,8 @@ def contract_row(page, contract):
     try:
         row.first.wait_for(state='visible', timeout=15000)
     except BrowserTimeout:
-        report('列表标签诊断：' + repr(page.get_by_text(re.compile(r'^vServer')).all_text_contents()))
-        if cell.count() == 1:
-            report('合同结构诊断：' + cell.evaluate('''node => {
-                const result = []; for(let i=0; node && i<7; i++,node=node.parentElement) {
-                const s=getComputedStyle(node); result.push([node.tagName,node.className,s.display,s.visibility]); }
-                return JSON.stringify(result); }'''))
-        report('合同定位诊断：可见表格行数=' + str(page.locator('tr:visible').count())
-               + '，匹配合同单元格数=' + str(cell.count())
-               + '，精确合同文本数=' + str(page.get_by_text(contract, exact=True).count()))
+        pass
     return unique(row, '指定合同列表行')
-
 
 def offer_container(page):
     # Choose the nearest container holding exactly one radio and the free offer.
@@ -210,3 +202,4 @@ if __name__ == '__main__':
         # Browser/IMAP exceptions can include page contents, credentials or PINs.
         report(f'失败：{type(exc).__name__}。连接或页面结构异常；未确认续期成功。')
         sys.exit(1)
+

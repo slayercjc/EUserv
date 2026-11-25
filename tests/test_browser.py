@@ -56,3 +56,10 @@ class PageTests(unittest.TestCase):
         self.assertEqual(str(expiry(self.page)), '2026-12-24')
         with self.assertRaises(StopRenewal):
             contract_row(self.page, '999')
+
+    def test_hidden_duplicate_and_script_in_visible_cell(self):
+        self.page.set_content('''<div style="display:none"><table><tr><td>123</td></tr></table></div>
+        <table><tr><td><table><tr><td>123<script>void 0;</script></td>
+        <td><button>Extend contract</button></td></tr>
+        <tr><td>1234</td></tr></table></td></tr></table>''')
+        self.assertEqual(control(contract_row(self.page, '123'), 'Extend contract').count(), 1)
