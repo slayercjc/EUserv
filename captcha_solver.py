@@ -1,6 +1,7 @@
 """Offline OCR for one login challenge; never upload images or log answers."""
 import re
 import os
+import io
 from pathlib import Path
 from renewal_core import StopRenewal, report
 
@@ -43,13 +44,24 @@ def solve_login_captcha(page):
         Path('captcha-diagnostic.png').write_bytes(image_bytes)
         raise StopRenewal('已保存验证码局部诊断图片；此次不识别、不提交验证码。')
     report('阶段：已识别验证码图片和输入框，进行离线 OCR。')
-    ocr = ddddocr.DdddOcr(show_ad=False)
-    result = ocr.classification(image_bytes)
-    try:
-        answer = captcha_answer(result)
-    except StopRenewal:
-        alternate = ddddocr.DdddOcr(show_ad=False, beta=True)
-        answer = captcha_answer(alternate.classification(image_bytes))
+    from PIL import Image, ImageFilter
+    source = Image.open(io.BytesIO(image_bytes)).convert('L')
+    binary = source.point(lambda pixel: 0 if pixel < 225 else 255)
+    cleaned = binary.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.MinFilter(3))
+    stream = io.BytesIO()
+    cleaned.save(stream, format='PNG')
+    candidates = set()
+    for beta in (False, True):
+        ocr = ddddocr.DdddOcr(show_ad=False, beta=beta)
+        for data in (image_bytes, stream.getvalue()):
+            result = ocr.classification(data)
+            try:
+                candidates.add(captcha_answer(result))
+            except StopRenewal:
+                pass
+    if len(candidates) != 1:
+        raise StopRenewal('字符验证码 OCR 未得到唯一有效答案（含去噪及双模型尝试）；未提交。')
+    answer = candidates.pop()
     button = page.locator('input[type="submit"]:visible').or_(page.get_by_role('button', name='Login', exact=True))
     if button.count() != 1:
         raise StopRenewal('无法唯一识别验证码提交按钮；未提交。')
