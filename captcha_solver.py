@@ -5,6 +5,13 @@ from pathlib import Path
 from renewal_core import StopRenewal, report
 
 
+def captcha_answer(text):
+    value = text.strip()
+    if re.fullmatch(r'[A-Za-z0-9]{6}', value):
+        return value
+    return arithmetic_answer(value)
+
+
 def arithmetic_answer(text):
     value = re.sub(r'\s+', '', text).replace('×', '*').replace('x', '*').replace('X', '*').replace('÷', '/')
     match = re.fullmatch(r'(\d{1,3})([+*/-])(\d{1,3})(?:=\??)?', value)
@@ -39,13 +46,10 @@ def solve_login_captcha(page):
     ocr = ddddocr.DdddOcr(show_ad=False)
     result = ocr.classification(image_bytes)
     try:
-        answer = arithmetic_answer(result)
+        answer = captcha_answer(result)
     except StopRenewal:
-        ocr.set_ranges('0123456789+-x/=')
-        probabilities = ocr.classification(image_bytes, probability=True)
-        constrained = ''.join(probabilities['charsets'][max(range(len(row)), key=row.__getitem__)]
-                              for row in probabilities['probability'])
-        answer = arithmetic_answer(constrained)
+        alternate = ddddocr.DdddOcr(show_ad=False, beta=True)
+        answer = captcha_answer(alternate.classification(image_bytes))
     button = page.locator('input[type="submit"]:visible').or_(page.get_by_role('button', name='Login', exact=True))
     if button.count() != 1:
         raise StopRenewal('无法唯一识别验证码提交按钮；未提交。')
