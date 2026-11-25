@@ -49,6 +49,12 @@ def contract_row(page, contract):
     try:
         row.first.wait_for(state='visible', timeout=15000)
     except BrowserTimeout:
+        report('列表标签诊断：' + repr(page.get_by_text(re.compile(r'^vServer')).all_text_contents()))
+        if cell.count() == 1:
+            report('合同结构诊断：' + cell.evaluate('''node => {
+                const result = []; for(let i=0; node && i<7; i++,node=node.parentElement) {
+                const s=getComputedStyle(node); result.push([node.tagName,node.className,s.display,s.visibility]); }
+                return JSON.stringify(result); }'''))
         report('合同定位诊断：可见表格行数=' + str(page.locator('tr:visible').count())
                + '，匹配合同单元格数=' + str(cell.count())
                + '，精确合同文本数=' + str(page.get_by_text(contract, exact=True).count()))
