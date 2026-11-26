@@ -104,7 +104,16 @@ def run():
             page = browser.new_page(locale='en-US')
             page.set_default_timeout(30000)
             report('阶段：打开 EUserv 登录页。')
-            page.goto(URL, wait_until='domcontentloaded')
+            # Only retry the initial GET; never automatically repeat a form submission.
+            for attempt in range(2):
+                try:
+                    page.goto(URL, wait_until='commit', timeout=45000)
+                    page.locator('input[name="email"]:visible').wait_for(timeout=45000)
+                    break
+                except BrowserTimeout:
+                    if attempt:
+                        raise StopRenewal('EUserv 登录页连续两次连接超时，尚未提交账号或续期。') from None
+                    report('登录页连接超时，重试一次只读请求。')
             report('阶段：登录页已加载，识别登录表单。')
             form = page.locator('form[name="step1_anmeldung"]')
             unique(form, '登录表单')
@@ -119,7 +128,7 @@ def run():
             report('阶段：填写登录密码。')
             password_input.fill(password)
             report('阶段：提交登录表单。')
-            login_button.click()
+            login_button.click(no_wait_after=True)
             report('阶段：等待登录结果。')
             try:
                 control(page, 'Contracts').wait_for(state='visible')
